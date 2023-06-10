@@ -6,6 +6,17 @@ from passlib.hash import sha256_crypt # for encrypting the password
 
 app = Flask(__name__)
 
+# configuring MySQL
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'MEM99ory' # insert your password for mysql
+app.config['MYSQL_DB'] = 'articlesapp' # name of the database 
+app.config['MYSQL_CURSORCLASS'] = 'DictCursor' # will set the default cursor to a dictionary
+
+
+# initializing MySQL 
+mysql = MySQL(app)
+
 Articles = Articles()
 
 @app.route('/')
@@ -28,7 +39,7 @@ def article(id):
 class RegisterForm(Form):
     name = StringField('Name', [validators.Length(min=1, max=50)])
     username = StringField('Username', [validators.Length(min=4, max=25)])
-    email = StringField('Name', [validators.Length(min=1, max=50)])
+    email = StringField('Email', [validators.Length(min=1, max=50)])
     password = PasswordField('Password' , [
         validators.DataRequired(),
         validators.EqualTo('confirm', message='Passwords do not match')
@@ -40,7 +51,30 @@ class RegisterForm(Form):
 def register():
     form = RegisterForm(request.form)
     if request.method == 'POST' and form.validate():
-        return render_template('register.html')
+        # declaring variables for storing form values 
+        name = form.name.data
+        email = form.email.data
+        username = form.username.data
+        password = sha256_crypt.encrypt(str(form.password.data))
+
+        # create a cursor 
+        cur = mysql.connection.cursor()
+
+        # executing commands 
+        cur.execute("INSERT INTO users(name,email,username,password) VALUES(%s,%s,%s,%s)", (name, email, username, password))
+
+        # commit to DB
+        mysql.connection.commit()
+
+        # close the connection 
+        cur.close()
+
+        # flash messages 
+        flash('You are now registered and can log in' , 'success')
+
+        # redirecting to index page once successfully registered 
+        redirect(url_for('index'))
+        
     return render_template('register.html' , form=form)
 
 
