@@ -9,7 +9,7 @@ app = Flask(__name__)
 # configuring MySQL
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'MEM99ory' # insert your password for mysql
+app.config['MYSQL_PASSWORD'] = 'new_password' # insert your password for mysql
 app.config['MYSQL_DB'] = 'articlesapp' # name of the database 
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor' # will set the default cursor to a dictionary
 
@@ -72,12 +72,39 @@ def register():
         # flash messages 
         flash('You are now registered and can log in' , 'success')
 
-        # redirecting to index page once successfully registered 
-        redirect(url_for('index'))
+        # redirecting to login page once successfully registered 
+        return redirect(url_for('login'))
         
     return render_template('register.html' , form=form)
 
+# user login 
+@app.route('/login' , methods=['GET' , 'POST'])
+def login():
+    if request.method == 'POST' :
+        # get form fields 
+        username = request.form['username']
+        password_login = request.form['password']
 
+        # create a cursor 
+        cur = mysql.connection.cursor()
+
+        # get user by username 
+        result = cur.execute("SELECT * FROM users WHERE username = %s" ,[username] )
+
+        if result > 0:
+            # Get stored hash 
+            data = cur.fetchone()
+            password = data['password']
+
+            # compare password 
+            if sha256_crypt.verify(password_login, password):
+                app.logger.info('PASSWORD MATCHED')
+        else:
+            app.logger.info('USER DOES NOT EXIST')
+            
+        return redirect(url_for('index'))
+    return render_template('login.html')
 
 if __name__ == '__main__':
+    app.secret_key = 'secret123'
     app.run(debug=True)
