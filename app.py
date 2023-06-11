@@ -141,6 +141,37 @@ def logout():
 def dashboard():
     return render_template('dashboard.html')
 
+# Article Form class
+class ArticlesForm(Form):
+    title = StringField('Title', [validators.Length(min=1, max=200)])
+    body = TextAreaField('Body', [validators.Length(min=30)])
+
+# add article 
+@app.route('/add_article',methods=['GET' , 'POST'] )
+@login_required
+def add_article():
+    form = ArticlesForm(request.form)
+    if request.method == 'POST' and form.validate():
+        title= form.title.data
+        body = form.body.data
+
+        # create the cursor 
+        cur = mysql.connection.cursor()
+
+        # executing commands 
+        cur.execute("INSERT INTO articles(title,body,author) VALUES(%s,%s,%s)", (title,body,session['username']))
+
+        # commit to DB
+        mysql.connection.commit()
+
+        # close the connection 
+        cur.close()
+
+        # flash messages 
+        flash('Article created' , 'success')
+        return redirect(url_for('dashboard'))
+
+    return render_template('add_article.html' , form=form)
 
 if __name__ == '__main__':
     app.secret_key = 'secret123'
