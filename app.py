@@ -98,12 +98,35 @@ def login():
 
             # compare password 
             if sha256_crypt.verify(password_login, password):
-                app.logger.info('PASSWORD MATCHED')
+                session['logged_in'] = True
+                session['username'] = username
+
+                flash('You are now logged in' , 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                error = "invalid login credentials"
+                return render_template('login.html', error=error)
+            #  close the connection 
+            cur.close() 
         else:
-            app.logger.info('USER DOES NOT EXIST')
-            
-        return redirect(url_for('index'))
+            error = "Username not found"
+            return render_template('login.html', error=error)
+
+        
     return render_template('login.html')
+
+# logout 
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash("You are now logged out" , 'success')
+    return redirect(url_for('login'))
+
+# dashboard 
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
 
 if __name__ == '__main__':
     app.secret_key = 'secret123'
